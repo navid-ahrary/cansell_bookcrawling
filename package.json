@@ -1,0 +1,16 @@
+{
+  "name": "bookcrawling",
+  "version": "1.0.0",
+  "description": "getting product's informations",
+  "main": "index.js",
+  "dependencies": {
+    "puppeteer-core": "^1.19.0",
+    "readline-sync": "^1.4.10"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "navidarry",
+  "license": "ISC",
+  "devDependencies": {}
+}
