@@ -9,7 +9,7 @@ const GetBooksURL = () => {
 
     for (let i = 1; i < booksList.length; i += 2) {
       const bookId = booksList[i].children[0].children[0].children[0].children[0].children[2].children[0].children[0].search
-      var bookURL = `http://ketab.ir/bookview.aspx${bookId}`
+      var bookURL = `https://db.ketab.ir/bookview.aspx${bookId}`
       urlList.push(bookURL)
     }
     return (urlList)

@@ -9,11 +9,11 @@ const config = {
     '--disable-setuid-sandbox'
   ],
   dumpio: false,
-  executablePath: '/usr/bin/brave-browser',
-  headless: true
+  executablePath: 'microsoft-edge-beta',
+  headless: false
 }
 
-const GetInfo = async (urlList, pubName, index) => {
+const GetInfo = async (urlList) => {
   const browser = await puppeteer.launch(config)
   const page = await browser.newPage()
   page.on('request', (req) => {
@@ -33,11 +33,12 @@ const GetInfo = async (urlList, pubName, index) => {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 9999999 })
 
     const result = await page.evaluate(GetBookInfo)
+    console.log(result)
     allInfo.push(result)
     console.log(`${--urlListLength} of ${urlList.length} remained `)
-    fs.writeFile(`./info/${pubName}/${pubName}${index + 1}-${index + urlList.length}.json`, JSON.stringify(allInfo), function (err) {
-      if (err) return err
-    })
+    // fs.writeFile(`./info/${pubName}/${pubName}${index + 1}-${index + urlList.length}.json`, JSON.stringify(allInfo), function (err) {
+    //   if (err) return err
+    // })
   }
   await browser.close()
 }

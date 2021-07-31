@@ -4,7 +4,7 @@ const GetBookInfo = () => {
 
     bookInfo['url'] = document.URL
 
-    bookInfo['image_src'] = document.querySelector('div.col-lg-4').firstElementChild.src
+    image_src = document.querySelector('div.col-lg-4').firstElementChild.src
 
     const infoDOM = document.querySelector('div.col-lg-8')
 
