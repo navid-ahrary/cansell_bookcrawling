@@ -12,7 +12,7 @@ const GetInfo = require('./lib/getInfo')
 const config = {
   ignoreHTTPSErrors: true,
   executablePath: '/usr/bin/brave-browser-stable',
-  headless: true
+  headless: false
 }
 
 
@@ -42,8 +42,8 @@ const app = async (year, pubId) => {
     
 
     await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueYear', year.toString());
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '28');
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '12');
+    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '01');
+    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '01');
 
     await page.select('#ctl00_ContentPlaceHolder1_drpToIssueYear', year.toString());
     await page.select('#ctl00_ContentPlaceHolder1_drpToIssueMonth', '12');
@@ -99,7 +99,7 @@ const app = async (year, pubId) => {
       result.push(n)
     }
 
-    fs.writeFile(`./kk.json}.json`, JSON.stringify(result), function (err) {
+    fs.writeFile('./kk.json', JSON.stringify(result), function (err) {
       if (err) return err
     })
   } catch (e) {
