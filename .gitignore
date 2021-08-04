@@ -65,5 +65,4 @@ typings/
 # Cache used by TypeScript's incremental build
 *.tsbuildinfo
 
-books_details.json
-books_urls.json
+/info

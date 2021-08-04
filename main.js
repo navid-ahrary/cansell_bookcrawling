@@ -3,21 +3,18 @@ const readline = require('readline-sync')
 const _ = require('lodash')
 const fs = require('fs')
 const util = require('util')
+const { exit } = require('process');
 
-
-const GetBooksUrl = require('./lib/components/get_book_url')
-const GetBookInfo = require('./lib/components/get_book_info');
-
+const GetBooksUrl = require('./lib/get_book_url')
+const GetBookInfo = require('./lib/get_book_info');
 
 const readfile = util.promisify(fs.readFile)
 
-
 const app = async (year) => {
-
   const config = {
     ignoreHTTPSErrors: true,
     executablePath: 'google-chrome-stable',
-    headless: true
+    headless: false
   }
 
   const browser = await puppeteer.launch(config)
@@ -37,10 +34,11 @@ const app = async (year) => {
 
         
     try {
-      var urls = JSON.parse(await readfile('./books_urls.json', {encoding: 'utf8'}))
+      var urls = JSON.parse(await readfile('./info/${year}_books_urls.json', {encoding: 'utf8'}))
     } catch(err) {
       if(err.code !== 'ENOENT') {
         console.error(err)
+        exit()
       }
     }
     
@@ -54,7 +52,7 @@ const app = async (year) => {
 
       await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueYear', year.toString());
       await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '01');
-      await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '01');
+      await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '05');
 
       await page.select('#ctl00_ContentPlaceHolder1_drpToIssueYear', year.toString());
       await page.select('#ctl00_ContentPlaceHolder1_drpToIssueMonth', '12');
@@ -96,29 +94,41 @@ const app = async (year) => {
           await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 99999999 })
         } else console.log('Getting all books url has been finished')
       } while (!isDisabledNextButton)
+      
+ 
     } else {
       console.log('Number of found book: ', urls.length)
     }
-      
+
     const result = []
-    for (const u of urls) {
-      
+
+    for (const u of urls) {  
       await page.goto(u, {waitUntil: 'domcontentloaded'})
       const n = await page.evaluate(GetBookInfo)
       result.push(n)
 
-      fs.writeFile('./books_urls.json', JSON.stringify(urls.slice(urls.indexOf(u) + 1)), function (err) {
+      fs.writeFile(`./info/${year}_books_urls.json`, JSON.stringify(urls.slice(urls.indexOf(u) + 1)), function (err) {
         if (err) return err
       })
 
       if ((urls.indexOf(u) + 1) % 10 === 0) {
-        console.log('Got', urls.indexOf(u) + 1, ', remained', urls.length - urls.indexOf(u) + 1)
+        console.log('Remained', urls.length - urls.indexOf(u) + 1)
       }
+
+      try {
+        var detailsFile = JSON.parse(await readfile(`./info/${year}_books_details.json`, {encoding: 'utf8'}))
+        result.push(detailsFile)
+      } catch(err) {
+        if(err.code !== 'ENOENT') {
+          console.error(err)
+        }
+      }
+      
+      fs.writeFile(`./info/${year}_books_details.json`, JSON.stringify(result), function (err) {
+        if (err) return err
+      })
     }
 
-    fs.writeFile('./books_details.json', JSON.stringify(result), function (err) {
-      if (err) return err
-    })
   } catch (e) {
     console.log(e)
   }
@@ -127,5 +137,14 @@ const app = async (year) => {
 }
 
 var year = readline.question('Enter year : [for example 1400] ')
+
+try {
+  fs.mkdirSync('./info')
+}catch(err) {
+  if(err.code !== 'EEXIST') {
+    console.error(err)
+    exit()
+  }
+}
 
 app(year)
