@@ -1,23 +1,25 @@
 const puppeteer = require('puppeteer-core')
-const mkdirp = require('mkdirp')
 const readline = require('readline-sync')
 const _ = require('lodash')
 const fs = require('fs')
+const util = require('util')
+
 
 const GetBooksUrl = require('./lib/components/get_book_url')
-const GetBookInfo = require('./lib/components/get_book_info')
-const GetInfo = require('./lib/getInfo')
+const GetBookInfo = require('./lib/components/get_book_info');
 
 
-const config = {
-  ignoreHTTPSErrors: true,
-  executablePath: '/usr/bin/brave-browser-stable',
-  headless: false
-}
+const readfile = util.promisify(fs.readFile)
 
 
+const app = async (year) => {
 
-const app = async (year, pubId) => {
+  const config = {
+    ignoreHTTPSErrors: true,
+    executablePath: 'google-chrome-stable',
+    headless: true
+  }
+
   const browser = await puppeteer.launch(config)
 
   try {
@@ -33,73 +35,88 @@ const app = async (year, pubId) => {
       }
     })
 
-    mkdirp(`./info/${year}`)
+        
+    try {
+      var urls = JSON.parse(await readfile('./books_urls.json', {encoding: 'utf8'}))
+    } catch(err) {
+      if(err.code !== 'ENOENT') {
+        console.error(err)
+      }
+    }
+    
+    if(!urls || !urls.length) {
+      urls = []
+      const searchPage = 'https://db.ketab.ir/Search.aspx'
 
-    const searchPage = 'https://db.ketab.ir/Search.aspx'
+      console.log('Opening page')
+      await page.goto(searchPage, { waitUntil: 'domcontentloaded', timeout: 99999999 })
+      
 
-    console.log('Opening page')
-    await page.goto(searchPage, { waitUntil: 'domcontentloaded', timeout: 99999999 })
+      await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueYear', year.toString());
+      await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '01');
+      await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '05');
+
+      await page.select('#ctl00_ContentPlaceHolder1_drpToIssueYear', year.toString());
+      await page.select('#ctl00_ContentPlaceHolder1_drpToIssueMonth', '12');
+      await page.select('#ctl00_ContentPlaceHolder1_drpToIssueDay', '31')
+
+      const option2 = (await page.$x(
+        '/html/body/form/div[4]/div/div/div/div/div[5]/div[11]/select/option[text() = "100"]'
+      ))[0];
+      const value2 = await (await option2.getProperty('value')).jsonValue();
+      await page.select('#ctl00_ContentPlaceHolder1_DrPageSize', value2);
+
+      await page.click('#ctl00_ContentPlaceHolder1_BtnSearch')
+
+      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 99999999 })
+
+
+      const w = await page.evaluate(() => {
+        const t = document.getElementById('ctl00_ContentPlaceHolder1_Label1')
+        return t.textContent
+      })
+      
+      var countAllResult = +w.match(/\d+/g)[0]
+      console.log('Number of found book: ', countAllResult)
     
 
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueYear', year.toString());
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '01');
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '01');
-
-    await page.select('#ctl00_ContentPlaceHolder1_drpToIssueYear', year.toString());
-    await page.select('#ctl00_ContentPlaceHolder1_drpToIssueMonth', '12');
-    await page.select('#ctl00_ContentPlaceHolder1_drpToIssueDay', '31')
-
-    const option2 = (await page.$x(
-      '/html/body/form/div[4]/div/div/div/div/div[5]/div[11]/select/option[text() = "200"]'
-    ))[0];
-    const value2 = await (await option2.getProperty('value')).jsonValue();
-    await page.select('#ctl00_ContentPlaceHolder1_DrPageSize', value2);
-
-    await page.click('#ctl00_ContentPlaceHolder1_BtnSearch')
-
-    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 99999999 })
-
-
-    const w = await page.evaluate(() => {
-      const t = document.getElementById('ctl00_ContentPlaceHolder1_Label1')
-      return t.textContent
-    })
-    
-    var countAllResult = +w.match(/\d+/g)[0]
-    console.log('Number of found book: ', countAllResult)
-    
-    var urls = []
-    var isDisabledNextButton = false
-    console.log('Getting books urls ...')
-    do {
-      var urlList = await page.evaluate(GetBooksUrl)
-      isDisabledNextButton = urlList.shift()
-
-      urls.push(...urlList)
-      console.log(`Got ${urlList.length} urls, remained: `, countAllResult - urlList.length)
-      countAllResult -= urlList.length
-
-      if (!isDisabledNextButton) {
-        var nextButton = await page.$('#ctl00_ContentPlaceHolder1_NextPage')
-        await nextButton.click()
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 99999999 })
-      } else console.log('Getting all books url has been finished')
-    } while (!isDisabledNextButton)
-    
-
-    console.log(urls.length)
+      var isDisabledNextButton = false
+      console.log('Getting books urls ...')
+      do {
+        var urlList = await page.evaluate(GetBooksUrl)
+        isDisabledNextButton = urlList.shift()
+        
+        urls.push(...urlList)
+        console.log(`Got ${urlList.length} urls, remained: `, countAllResult - urlList.length)
+        countAllResult -= urlList.length
+        
+        if (!isDisabledNextButton) {
+          var nextButton = await page.$('#ctl00_ContentPlaceHolder1_NextPage')
+          await nextButton.click()
+          await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 99999999 })
+        } else console.log('Getting all books url has been finished')
+      } while (!isDisabledNextButton)
+    } else {
+      console.log('Number of found book: ', urls.length)
+    }
+      
     const result = []
     for (const u of urls) {
-      if ((urls.indexOf(u) + 1) % 10 === 0) {
-        console.log('Got', urls.indexOf(u) + 1, ', remained', urls.length - urls.indexOf(u) + 1)
-      }
-
+      
       await page.goto(u, {waitUntil: 'domcontentloaded'})
       const n = await page.evaluate(GetBookInfo)
       result.push(n)
+
+      fs.writeFile('./books_urls.json', JSON.stringify(urls.slice(urls.indexOf(u) + 1)), function (err) {
+        if (err) return err
+      })
+
+      if ((urls.indexOf(u) + 1) % 10 === 0) {
+        console.log('Got', urls.indexOf(u) + 1, ', remained', urls.length - urls.indexOf(u) + 1)
+      }
     }
 
-    fs.writeFile('./kk.json', JSON.stringify(result), function (err) {
+    fs.writeFile('./books_details.json', JSON.stringify(result), function (err) {
       if (err) return err
     })
   } catch (e) {
