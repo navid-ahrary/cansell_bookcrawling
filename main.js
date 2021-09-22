@@ -38,8 +38,8 @@ const app = async (year) => {
     
 
     await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueYear', year.toString());
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '25');
-    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '12');
+    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueDay', '01');
+    await page.select('#ctl00_ContentPlaceHolder1_drpFromIssueMonth', '01');
 
     await page.select('#ctl00_ContentPlaceHolder1_drpToIssueYear', year.toString());
     await page.select('#ctl00_ContentPlaceHolder1_drpToIssueMonth', '12');
