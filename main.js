@@ -2,7 +2,6 @@ const puppeteer = require('puppeteer-core')
 const readline = require('readline-sync')
 const _ = require('lodash')
 const fs = require('fs')
-const util = require('util')
 const { exit } = require('process');
 
 const GetBooksUrl = require('./lib/get_book_url')
