@@ -12,7 +12,7 @@ const app = async (year) => {
   const config = {
     ignoreHTTPSErrors: true,
     executablePath: 'google-chrome-stable',
-    headless: false
+    headless: true
   }
 
   const browser = await puppeteer.launch(config)
